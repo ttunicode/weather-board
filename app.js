@@ -1,35 +1,25 @@
 // app.js – 화면 동작 (목록 그리기, 일정 추가)
 
 let tasks = [];
-let baseTasks = [];
 let weatherByRegion = {};
-
-function loadAddedTasks() {
-  try {
-    const saved = JSON.parse(localStorage.getItem('wx_added') || '[]');
-    return Array.isArray(saved) ? saved : [];
-  } catch (error) {
-    return [];
-  }
-}
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 async function loadTasks() {
   const msgBox = document.getElementById('msgBox');
+  msgBox.textContent = 'Supabase에서 일정을 불러오는 중입니다.';
   try {
-    const response = await fetch('./data/tasks.json');
-    if (!response.ok) throw new Error('HTTP ' + response.status);
-    const data = await response.json();
-    if (!Array.isArray(data)) throw new Error('일정 JSON 형식이 올바르지 않습니다.');
-    baseTasks = data;
+    const { data, error } = await supabaseClient
+      .from('wx_tasks')
+      .select('id, title, region, kind, owner')
+      .order('id', { ascending: true });
+    if (error) throw error;
+    tasks = data || [];
     msgBox.textContent = '';
   } catch (error) {
-    baseTasks = [];
-    msgBox.textContent = window.location.protocol === 'file:'
-      ? '배포 주소로 열어 주세요'
-      : '일정 목록 파일을 읽지 못했습니다.';
+    tasks = [];
+    msgBox.textContent = `Supabase에서 일정을 불러오지 못했습니다. setup.sql 실행과 config.js 연결값을 확인해 주세요. (${error.message})`;
   }
 
-  tasks = baseTasks.concat(loadAddedTasks());
   renderTasks();
 }
 
@@ -57,7 +47,7 @@ function renderTasks() {
   }
 }
 
-function addTask(e) {
+async function addTask(e) {
   e.preventDefault();
   const t = {
     title: document.getElementById('titleInput').value.trim(),
@@ -66,12 +56,20 @@ function addTask(e) {
     owner: document.getElementById('ownerInput').value.trim(),
   };
   if (!t.title || !t.owner) return;
-  const saved = loadAddedTasks();
-  saved.push(t);
-  localStorage.setItem('wx_added', JSON.stringify(saved));
-  e.target.reset();
-  tasks = baseTasks.concat(saved);
-  renderTasks();
+  const submitButton = e.target.querySelector('button[type="submit"]');
+  if (submitButton) submitButton.disabled = true;
+  const msgBox = document.getElementById('msgBox');
+  msgBox.textContent = 'Supabase에 일정을 저장하고 있습니다.';
+  try {
+    const { error } = await supabaseClient.from('wx_tasks').insert(t);
+    if (error) throw error;
+    e.target.reset();
+    await loadTasks();
+  } catch (error) {
+    msgBox.textContent = `일정을 저장하지 못했습니다. setup.sql의 권한과 DB 제약을 확인해 주세요. (${error.message})`;
+  } finally {
+    if (submitButton) submitButton.disabled = false;
+  }
 }
 
 document.getElementById('taskForm').addEventListener('submit', addTask);
