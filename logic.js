@@ -52,6 +52,41 @@ function judge(kind, w) {
   return { level: 'ok', text: '진행' };
 }
 
+function buildMarkdownReport(tasks, weatherByRegion) {
+  const escapeCell = (value) => String(value ?? '-').replace(/\|/g, '\\|').replace(/\r?\n/g, '<br>');
+  const rows = [
+    '| 일정 | 지역 | 구분 | 담당 | 날씨 | 판단 |',
+    '| --- | --- | --- | --- | --- | --- |',
+  ];
+
+  for (const task of tasks) {
+    const weather = weatherByRegion[task.region];
+    const weatherText = weather
+      ? `${weather.tempMax}℃ · ${weather.windMax}m/s · ${weather.rainProb}%`
+      : '-';
+    const result = judge(task.kind, weather);
+    rows.push(`| ${[
+      task.title,
+      task.region,
+      task.kind,
+      task.owner,
+      weatherText,
+      result.text,
+    ].map(escapeCell).join(' | ')} |`);
+  }
+
+  rows.push('', `판단 기준: 풍속 ${RULES.wind} m/s 이상 · 강수확률 ${RULES.rain}% 이상 · 최고 기온 ${RULES.heat}℃ 이상`);
+  return rows.join('\n');
+}
+
 if (typeof module !== 'undefined') {
-  module.exports = { RULES, REGION_COORDINATES, buildWeatherUrl, parseWeatherResponse, applyWeatherTest, judge };
+  module.exports = {
+    RULES,
+    REGION_COORDINATES,
+    buildWeatherUrl,
+    parseWeatherResponse,
+    applyWeatherTest,
+    judge,
+    buildMarkdownReport,
+  };
 }

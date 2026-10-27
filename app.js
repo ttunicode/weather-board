@@ -78,11 +78,23 @@ document.getElementById('taskForm').addEventListener('submit', addTask);
 loadTasks();
 
 const today = new Date();
-document.getElementById('currentDate').textContent = [
+const todayText = [
   today.getFullYear(),
   String(today.getMonth() + 1).padStart(2, '0'),
   String(today.getDate()).padStart(2, '0'),
 ].join('-');
+document.getElementById('currentDate').textContent = todayText;
+
+document.getElementById('downloadReportButton').addEventListener('click', () => {
+  const markdown = buildMarkdownReport(tasks, weatherByRegion);
+  const blob = new Blob(['\uFEFF', markdown], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `현장일정_판단_${todayText}.md`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
 
 async function loadWeather() {
   const weatherBox = document.getElementById('weatherBox');
