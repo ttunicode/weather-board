@@ -11,7 +11,7 @@ const SAMPLE_TASKS = [
 ];
 
 let tasks = [];
-let weatherByRegion = {};   // 03 단원에서 지역별 날씨를 넣음
+let weatherByRegion = {};
 
 function loadTasks() {
   const saved = JSON.parse(localStorage.getItem('wx_added') || '[]');
@@ -69,3 +69,30 @@ document.getElementById('currentDate').textContent = [
   String(today.getMonth() + 1).padStart(2, '0'),
   String(today.getDate()).padStart(2, '0'),
 ].join('-');
+
+async function loadWeather() {
+  const weatherBox = document.getElementById('weatherBox');
+  const regions = Object.keys(REGION_COORDINATES);
+  const failedRegions = [];
+  weatherBox.textContent = '오늘 지역별 날씨를 조회하고 있습니다.';
+
+  await Promise.all(regions.map(async (region) => {
+    try {
+      const response = await fetch(buildWeatherUrl(region));
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const data = await response.json();
+      const weather = parseWeatherResponse(data);
+      weatherByRegion[region] = applyWeatherTest(weather, window.location.search);
+    } catch (error) {
+      failedRegions.push(region);
+    }
+  }));
+
+  renderTasks();
+  const loadedCount = regions.length - failedRegions.length;
+  weatherBox.textContent = failedRegions.length
+    ? `날씨 ${loadedCount}/${regions.length}개 지역 조회 완료 · 조회 실패: ${failedRegions.join(', ')} (실패한 지역 일정은 날씨 확인 전)`
+    : `오늘 날씨 ${loadedCount}개 지역 조회 완료`;
+}
+
+loadWeather();
