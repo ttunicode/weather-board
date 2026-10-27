@@ -13,6 +13,7 @@
 - style.css  : 디자인
 - logic.js   : 판단 규칙만 (화면을 다루는 코드 금지)
 - app.js     : 화면 동작 (목록 그리기, 일정 추가)
+- api/kma.js : Vercel API (지역 일정 · KMA 날씨 · 판단 JSON 응답)
 - PRD.md · CLAUDE.md · README.md : 문서
 
 ## 작업 방식
@@ -24,4 +25,5 @@
 - 가상 데이터만 사용한다. 실제 이름 · 연락처 · 기관 내부 자료를 넣지 않는다.
 - 일정 데이터는 Supabase `public.wx_tasks` 표에 둔다. 표 구성과 DB 제약은 `setup.sql`로 관리한다.
 - 브라우저에는 Supabase 공개용 키만 사용한다. 비밀 키는 코드 · 채팅 · GitHub 에 넣지 않는다.
+- KMA 인증키는 Vercel의 `KMA_KEY` 환경변수에서만 읽는다. 코드 · 응답 · GitHub에 넣지 않는다.
 - 사용자가 입력한 글자는 textContent 로 표시한다.
